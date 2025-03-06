@@ -1,3 +1,4 @@
+// main.cjs
 const { app, BrowserWindow, ipcMain, session, dialog } = require("electron");
 const path = require("path");
 const {
@@ -14,54 +15,7 @@ const {
   savePostTemplateLink,
 } = require("./src/db/initDB.cjs");
 
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      enableRemoteModule: false,
-      nodeIntegration: false,
-    },
-  });
-
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": [
-          "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http://localhost:5173 ws://localhost:5173; style-src 'self' 'unsafe-inline';",
-        ],
-      },
-    });
-  });
-
-  console.log("[main.cjs] Загрузка фронтенда");
-  win.loadURL("http://localhost:5173").catch((err) => {
-    console.error("[main.cjs] Ошибка загрузки фронтенда:", err);
-    win.loadFile("error.html");
-  });
-
-  win.webContents.openDevTools();
-}
-
-app.whenReady().then(() => {
-  console.log("[main.cjs] Приложение запущено");
-  initDB();
-  createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
-app.on("window-all-closed", () => {
-  console.log("[main.cjs] Закрытие приложения");
-  db.close();
-  if (process.platform !== "darwin") app.quit();
-});
-
-// Проверка регистрации всех IPC-каналов
+// Регистрация IPC-обработчиков должна быть до создания окна
 const handleIPC = (channel, handler) => {
   console.log(`[main.cjs] Регистрация обработчика для канала: ${channel}`);
   ipcMain.on(channel, (event, ...args) => {
@@ -73,7 +27,7 @@ const handleIPC = (channel, handler) => {
   });
 };
 
-// Регистрация обработчиков
+// Определение всех обработчиков
 handleIPC("open-file-dialog", async (event) => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile", "multiSelections"],
@@ -207,4 +161,52 @@ handleIPC("save-template", async (event, template) => {
   );
   console.log("[main.cjs] Шаблоны обновлены после сохранения:", JSON.stringify(rows, null, 2));
   event.sender.send("templates", rows);
+});
+
+// Создание окна после регистрации обработчиков
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      enableRemoteModule: false,
+      nodeIntegration: false,
+    },
+  });
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [
+          "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http://localhost:5173 ws://localhost:5173; style-src 'self' 'unsafe-inline';",
+        ],
+      },
+    });
+  });
+
+  console.log("[main.cjs] Загрузка фронтенда");
+  win.loadURL("http://localhost:5173").catch((err) => {
+    console.error("[main.cjs] Ошибка загрузки фронтенда:", err);
+    win.loadFile("error.html");
+  });
+
+  win.webContents.openDevTools();
+}
+
+app.whenReady().then(() => {
+  console.log("[main.cjs] Приложение запущено");
+  initDB();
+  createWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on("window-all-closed", () => {
+  console.log("[main.cjs] Закрытие приложения");
+  db.close();
+  if (process.platform !== "darwin") app.quit();
 });
