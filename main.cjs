@@ -113,15 +113,6 @@ handleIPC("save-post", async (event, post) => {
     console.log("[main.cjs] Файлы для сохранения отсутствуют");
   }
 
-  if (post.templateId) {
-    console.log(`[main.cjs] Связывание шаблона ${post.templateId} с постом ${postId}`);
-    await new Promise((resolve, reject) =>
-      savePostTemplateLink(postId, post.templateId, (err) =>
-        err ? reject(err) : resolve()
-      )
-    );
-  }
-
   const rows = await new Promise((resolve, reject) =>
     getPosts((err, rows) => {
       console.log("[main.cjs] Обновлённые посты после сохранения, ID:", logPostIds(rows));

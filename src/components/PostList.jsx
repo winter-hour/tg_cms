@@ -32,6 +32,7 @@ const listeners = {
 if (window.electronAPI) {
   Object.keys(listeners).forEach((channel) => {
     window.electronAPI.on(channel, (data) => {
+      console.log("[PostList.jsx] Глобальный слушатель для канала:", channel, "данные:", data);
       listeners[channel].forEach((callback) => callback(data));
     });
   });
@@ -77,17 +78,17 @@ function PostList() {
         );
       };
       const groupsCallback = (data) => {
-        console.log("[PostList.jsx] Получены группы:", data.length);
-        setGroups(data);
+        console.log("[PostList.jsx] Получены группы:", data);
+        setGroups(data || []);
       };
       const templatesCallback = (data) => {
-        console.log("[PostList.jsx] Получены шаблоны:", data.length);
-        setTemplates(data);
+        console.log("[PostList.jsx] Получены шаблоны:", data);
+        setTemplates(data || []);
       };
       const attachedFilesCallback = handleAttachedFiles;
       const selectedFilesCallback = (data) => {
-        console.log("[PostList.jsx] Получены файлы через dialog:", data.length);
-        setFiles(data);
+        console.log("[PostList.jsx] Получены файлы через dialog:", data);
+        setFiles(data || []);
       };
       const postSavedCallback = (postId) => {
         console.log("[PostList.jsx] Получен ID сохранённого поста:", postId);
@@ -121,10 +122,7 @@ function PostList() {
     }
   }, [handleAttachedFiles]);
 
-  useEffect(() => {
-    console.log("[PostList.jsx] Текущее состояние posts:", posts.map((p) => p.id));
-  }, [posts]);
-
+  // Запрос прикреплённых файлов для каждого поста
   useEffect(() => {
     if (posts.length > 0) {
       posts.forEach((post) => {
@@ -132,6 +130,13 @@ function PostList() {
       });
     }
   }, [posts]);
+
+  useEffect(() => {
+    console.log("[PostList.jsx] Текущее состояние posts:", posts.map((p) => p.id));
+    console.log("[PostList.jsx] Текущее состояние groups:", groups);
+    console.log("[PostList.jsx] Текущее состояние templates:", templates);
+    console.log("[PostList.jsx] Текущее состояние files:", files);
+  }, [posts, groups, templates, files]);
 
   const handleSave = () => {
     const post = {
