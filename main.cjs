@@ -15,7 +15,13 @@ const {
   savePostTemplateLink,
 } = require("./src/db/initDB.cjs");
 
-// Регистрация IPC-обработчиков должна быть до создания окна
+// Функция для вывода только ID постов
+const logPostIds = (posts) => {
+  if (!posts || posts.length === 0) return "[]";
+  return `[${posts.map((post) => post.id).join(", ")}]`;
+};
+
+// Регистрация IPC-обработчиков
 const handleIPC = (channel, handler) => {
   console.log(`[main.cjs] Регистрация обработчика для канала: ${channel}`);
   ipcMain.on(channel, (event, ...args) => {
@@ -27,7 +33,7 @@ const handleIPC = (channel, handler) => {
   });
 };
 
-// Определение всех обработчиков
+// Обработчики
 handleIPC("open-file-dialog", async (event) => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile", "multiSelections"],
@@ -38,7 +44,7 @@ handleIPC("open-file-dialog", async (event) => {
       name: path.basename(filePath),
       type: "unknown",
     }));
-    console.log("[main.cjs] Выбранные файлы:", JSON.stringify(files, null, 2));
+    console.log("[main.cjs] Выбранные файлы:", files.map((file) => file.name));
     event.sender.send("selected-files", files);
   }
 });
@@ -47,7 +53,7 @@ handleIPC("get-groups", async (event) => {
   const rows = await new Promise((resolve, reject) =>
     getGroups((err, rows) => (err ? reject(err) : resolve(rows)))
   );
-  console.log("[main.cjs] Отправлены группы на фронтенд:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Отправлены группы на фронтенд, количество:", rows.length);
   event.sender.send("groups", rows);
 });
 
@@ -58,23 +64,23 @@ handleIPC("save-group", async (event, { title, description }) => {
   const rows = await new Promise((resolve, reject) =>
     getGroups((err, rows) => (err ? reject(err) : resolve(rows)))
   );
-  console.log("[main.cjs] Группы обновлены после сохранения:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Группы обновлены после сохранения, количество:", rows.length);
   event.sender.send("groups", rows);
 });
 
 handleIPC("get-posts", async (event) => {
   const rows = await new Promise((resolve, reject) =>
     getPosts((err, rows) => {
-      console.log("[main.cjs] Получены строки из базы для постов:", rows);
+      console.log("[main.cjs] Получены строки из базы для постов, ID:", logPostIds(rows));
       err ? reject(err) : resolve(rows);
     })
   );
-  console.log("[main.cjs] Отправлены посты на фронтенд:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Отправлены посты на фронтенд, ID:", logPostIds(rows));
   event.sender.send("posts", rows || []);
 });
 
 handleIPC("save-post", async (event, post) => {
-  console.log("[main.cjs] Получен пост для сохранения:", JSON.stringify(post, null, 2));
+  console.log("[main.cjs] Получен пост для сохранения, title:", post.title);
 
   const postId = await new Promise((resolve, reject) =>
     savePost(post, (err, id) => (err ? reject(err) : resolve(id)))
@@ -88,7 +94,7 @@ handleIPC("save-post", async (event, post) => {
     await Promise.all(
       post.files.map((file) =>
         new Promise((resolve, reject) => {
-          console.log("[main.cjs] Сохранение файла:", JSON.stringify(file, null, 2));
+          console.log("[main.cjs] Сохранение файла:", file.name);
           saveAttachedFile(postId, file.path, file.type || "unknown", (err) => {
             if (err) {
               console.error("[main.cjs] Ошибка сохранения файла:", err);
@@ -118,11 +124,11 @@ handleIPC("save-post", async (event, post) => {
 
   const rows = await new Promise((resolve, reject) =>
     getPosts((err, rows) => {
-      console.log("[main.cjs] Обновлённые посты после сохранения:", rows);
+      console.log("[main.cjs] Обновлённые посты после сохранения, ID:", logPostIds(rows));
       err ? reject(err) : resolve(rows);
     })
   );
-  console.log("[main.cjs] Отправлены обновлённые посты на фронтенд:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Отправлены обновлённые посты на фронтенд, ID:", logPostIds(rows));
   event.sender.send("posts", rows || []);
 });
 
@@ -131,7 +137,7 @@ handleIPC("get-attached-files", async (event, postId) => {
   const rows = await new Promise((resolve, reject) =>
     getAttachedFiles(postId, (err, rows) => (err ? reject(err) : resolve(rows)))
   );
-  console.log("[main.cjs] Прикреплённые файлы:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Прикреплённые файлы, количество:", rows.length);
   event.sender.send("attached-files", rows);
 });
 
@@ -140,7 +146,7 @@ handleIPC("get-all-attached-files", async (event) => {
   const rows = await new Promise((resolve, reject) =>
     db.all("SELECT * FROM Post_Attached_Files", (err, rows) => (err ? reject(err) : resolve(rows)))
   );
-  console.log("[main.cjs] Все прикреплённые файлы:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Все прикреплённые файлы, количество:", rows.length);
   event.sender.send("all-attached-files", rows);
 });
 
@@ -148,7 +154,7 @@ handleIPC("get-templates", async (event) => {
   const rows = await new Promise((resolve, reject) =>
     getTemplates((err, rows) => (err ? reject(err) : resolve(rows)))
   );
-  console.log("[main.cjs] Отправлены шаблоны на фронтенд:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Отправлены шаблоны на фронтенд, количество:", rows.length);
   event.sender.send("templates", rows);
 });
 
@@ -159,11 +165,11 @@ handleIPC("save-template", async (event, template) => {
   const rows = await new Promise((resolve, reject) =>
     getTemplates((err, rows) => (err ? reject(err) : resolve(rows)))
   );
-  console.log("[main.cjs] Шаблоны обновлены после сохранения:", JSON.stringify(rows, null, 2));
+  console.log("[main.cjs] Шаблоны обновлены после сохранения, количество:", rows.length);
   event.sender.send("templates", rows);
 });
 
-// Создание окна после регистрации обработчиков
+// Создание окна
 function createWindow() {
   const win = new BrowserWindow({
     width: 800,
@@ -187,9 +193,9 @@ function createWindow() {
     });
   });
 
-  console.log("[main.cjs] Загрузка фронтенда");
+  console.log("[main.cjs] Попытка загрузки фронтенда...");
   win.loadURL("http://localhost:5173").catch((err) => {
-    console.error("[main.cjs] Ошибка загрузки фронтенда:", err);
+    console.error("[main.cjs] Ошибка загрузки фронтенда:", err.message);
     win.loadFile("error.html");
   });
 

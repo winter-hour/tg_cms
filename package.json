@@ -5,10 +5,10 @@
   "type": "module",
   "main": "main.cjs",
   "scripts": {
-    "start": "electron .",
     "dev": "concurrently \"npm run dev:vite\" \"npm run start:electron\"",
     "dev:vite": "vite",
-    "start:electron": "cross-env NODE_ENV=development electron .",
+    "start:electron": "wait-on http://localhost:5173 && electron .",
+    "start": "npm run dev & npm run start:electron",
     "build": "vite build && electron-builder",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -38,6 +38,7 @@
     "@mui/material": "^5.15.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "wait-on": "^8.0.2"
   }
 }
