@@ -1,3 +1,4 @@
+// src/components/PostList.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Table,
@@ -43,32 +44,38 @@ function PostList() {
   useEffect(() => {
     if (window.electronAPI && !isInitialized) {
       console.log("[PostList.jsx] Инициализация PostList");
-      window.electronAPI.on("posts", (data) => {
-        console.log("[PostList.jsx] Получены посты:", data);
-        setPosts(
-          data.map((post) => ({
-            ...post,
-            is_published: !!post.is_published,
-          }))
-        );
-      });
-      window.electronAPI.on("groups", (data) => {
-        console.log("[PostList.jsx] Получены группы:", data);
-        setGroups(data);
-      });
-      window.electronAPI.on("templates", (data) => {
-        console.log("[PostList.jsx] Получены шаблоны:", data);
-        setTemplates(data);
-      });
-      window.electronAPI.on("attached-files", handleAttachedFiles);
-      window.electronAPI.on("selected-files", (data) => {
-        console.log("[PostList.jsx] Получены файлы через dialog:", data);
-        setFiles(data);
-      });
-      window.electronAPI.on("post-saved", (postId) => {
-        console.log("[PostList.jsx] Получен ID сохранённого поста:", postId);
-        setLastPostId(postId);
-        if (postId) window.electronAPI.send("get-attached-files", Number(postId));
+      const listeners = {
+        posts: (data) => {
+          console.log("[PostList.jsx] Получены посты:", data.map(p => p.id));
+          setPosts(
+            data.map((post) => ({
+              ...post,
+              is_published: !!post.is_published,
+            }))
+          );
+        },
+        groups: (data) => {
+          console.log("[PostList.jsx] Получены группы:", data.length);
+          setGroups(data);
+        },
+        templates: (data) => {
+          console.log("[PostList.jsx] Получены шаблоны:", data.length);
+          setTemplates(data);
+        },
+        attachedFiles: handleAttachedFiles,
+        selectedFiles: (data) => {
+          console.log("[PostList.jsx] Получены файлы через dialog:", data.length);
+          setFiles(data);
+        },
+        postSaved: (postId) => {
+          console.log("[PostList.jsx] Получен ID сохранённого поста:", postId);
+          setLastPostId(postId);
+          if (postId) window.electronAPI.send("get-attached-files", Number(postId));
+        },
+      };
+
+      Object.entries(listeners).forEach(([channel, callback]) => {
+        window.electronAPI.on(channel, callback);
       });
 
       console.log("[PostList.jsx] Отправка начальных запросов");
@@ -77,22 +84,20 @@ function PostList() {
       window.electronAPI.send("get-templates");
 
       setIsInitialized(true);
+
+      return () => {
+        console.log("[PostList.jsx] Очистка слушателей");
+        Object.keys(listeners).forEach((channel) => {
+          window.electronAPI.removeAllListeners(channel);
+        });
+      };
     } else if (!window.electronAPI) {
       console.error("[PostList.jsx] window.electronAPI недоступен!");
     }
-
-    return () => {
-      if (window.electronAPI) {
-        ["posts", "groups", "templates", "attached-files", "selected-files", "post-saved"].forEach(
-          (channel) => window.electronAPI.removeAllListeners(channel)
-        );
-        console.log("[PostList.jsx] Слушатели очищены в PostList");
-      }
-    };
   }, [handleAttachedFiles, isInitialized]);
 
   useEffect(() => {
-    console.log("[PostList.jsx] Текущее состояние posts:", posts);
+    console.log("[PostList.jsx] Текущее состояние posts:", posts.map(p => p.id));
   }, [posts]);
 
   const handleSave = () => {
