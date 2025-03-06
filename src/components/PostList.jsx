@@ -1,5 +1,5 @@
 // src/components/PostList.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -29,7 +29,7 @@ function PostList() {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [files, setFiles] = useState([]);
   const [lastPostId, setLastPostId] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const isInitialized = useRef(false);
 
   const handleAttachedFiles = useCallback(
     (data) => {
@@ -45,7 +45,7 @@ function PostList() {
   );
 
   useEffect(() => {
-    if (window.electronAPI && !isInitialized) {
+    if (window.electronAPI && !isInitialized.current) {
       console.log("[PostList.jsx] Инициализация PostList");
 
       const listeners = {
@@ -87,7 +87,7 @@ function PostList() {
       window.electronAPI.send("get-groups");
       window.electronAPI.send("get-templates");
 
-      setIsInitialized(true);
+      isInitialized.current = true;
 
       return () => {
         console.log("[PostList.jsx] Очистка слушателей");
@@ -98,7 +98,7 @@ function PostList() {
     } else if (!window.electronAPI) {
       console.error("[PostList.jsx] window.electronAPI недоступен!");
     }
-  }, [handleAttachedFiles, isInitialized]);
+  }, [handleAttachedFiles]);
 
   useEffect(() => {
     console.log("[PostList.jsx] Текущее состояние posts:", posts.map((p) => p.id));
