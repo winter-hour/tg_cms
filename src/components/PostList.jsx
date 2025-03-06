@@ -1,5 +1,5 @@
 // src/components/PostList.jsx
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -18,6 +18,25 @@ import {
   ListItemText,
 } from "@mui/material";
 
+// Глобальное хранилище для слушателей
+const listeners = {
+  posts: [],
+  groups: [],
+  templates: [],
+  attachedFiles: [],
+  selectedFiles: [],
+  postSaved: [],
+};
+
+// Регистрация слушателей один раз
+if (window.electronAPI) {
+  Object.keys(listeners).forEach((channel) => {
+    window.electronAPI.on(channel, (data) => {
+      listeners[channel].forEach((callback) => callback(data));
+    });
+  });
+}
+
 function PostList() {
   const [posts, setPosts] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -29,7 +48,6 @@ function PostList() {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [files, setFiles] = useState([]);
   const [lastPostId, setLastPostId] = useState(null);
-  const isInitialized = useRef(false);
 
   const handleAttachedFiles = useCallback(
     (data) => {
@@ -45,57 +63,60 @@ function PostList() {
   );
 
   useEffect(() => {
-    if (window.electronAPI && !isInitialized.current) {
+    if (window.electronAPI) {
       console.log("[PostList.jsx] Инициализация PostList");
 
-      const listeners = {
-        posts: (data) => {
-          console.log("[PostList.jsx] Получены посты:", data.map((p) => p.id));
-          setPosts(
-            data.map((post) => ({
-              ...post,
-              is_published: !!post.is_published,
-            }))
-          );
-        },
-        groups: (data) => {
-          console.log("[PostList.jsx] Получены группы:", data.length);
-          setGroups(data);
-        },
-        templates: (data) => {
-          console.log("[PostList.jsx] Получены шаблоны:", data.length);
-          setTemplates(data);
-        },
-        attachedFiles: handleAttachedFiles,
-        selectedFiles: (data) => {
-          console.log("[PostList.jsx] Получены файлы через dialog:", data.length);
-          setFiles(data);
-        },
-        postSaved: (postId) => {
-          console.log("[PostList.jsx] Получен ID сохранённого поста:", postId);
-          setLastPostId(postId);
-          if (postId) window.electronAPI.send("get-attached-files", Number(postId));
-        },
+      // Добавление слушателей
+      const postsCallback = (data) => {
+        console.log("[PostList.jsx] Получены посты:", data.map((p) => p.id));
+        setPosts(
+          data.map((post) => ({
+            ...post,
+            is_published: !!post.is_published,
+          }))
+        );
+      };
+      const groupsCallback = (data) => {
+        console.log("[PostList.jsx] Получены группы:", data.length);
+        setGroups(data);
+      };
+      const templatesCallback = (data) => {
+        console.log("[PostList.jsx] Получены шаблоны:", data.length);
+        setTemplates(data);
+      };
+      const attachedFilesCallback = handleAttachedFiles;
+      const selectedFilesCallback = (data) => {
+        console.log("[PostList.jsx] Получены файлы через dialog:", data.length);
+        setFiles(data);
+      };
+      const postSavedCallback = (postId) => {
+        console.log("[PostList.jsx] Получен ID сохранённого поста:", postId);
+        setLastPostId(postId);
+        if (postId) window.electronAPI.send("get-attached-files", Number(postId));
       };
 
-      Object.entries(listeners).forEach(([channel, callback]) => {
-        window.electronAPI.on(channel, callback);
-      });
+      listeners.posts.push(postsCallback);
+      listeners.groups.push(groupsCallback);
+      listeners.templates.push(templatesCallback);
+      listeners.attachedFiles.push(attachedFilesCallback);
+      listeners.selectedFiles.push(selectedFilesCallback);
+      listeners.postSaved.push(postSavedCallback);
 
       console.log("[PostList.jsx] Отправка начальных запросов");
       window.electronAPI.send("get-posts");
       window.electronAPI.send("get-groups");
       window.electronAPI.send("get-templates");
 
-      isInitialized.current = true;
-
       return () => {
         console.log("[PostList.jsx] Очистка слушателей");
-        Object.keys(listeners).forEach((channel) => {
-          window.electronAPI.removeAllListeners(channel);
-        });
+        listeners.posts = listeners.posts.filter((cb) => cb !== postsCallback);
+        listeners.groups = listeners.groups.filter((cb) => cb !== groupsCallback);
+        listeners.templates = listeners.templates.filter((cb) => cb !== templatesCallback);
+        listeners.attachedFiles = listeners.attachedFiles.filter((cb) => cb !== attachedFilesCallback);
+        listeners.selectedFiles = listeners.selectedFiles.filter((cb) => cb !== selectedFilesCallback);
+        listeners.postSaved = listeners.postSaved.filter((cb) => cb !== postSavedCallback);
       };
-    } else if (!window.electronAPI) {
+    } else {
       console.error("[PostList.jsx] window.electronAPI недоступен!");
     }
   }, [handleAttachedFiles]);
