@@ -31,62 +31,62 @@ function PostList() {
   const [lastPostId, setLastPostId] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const handleAttachedFiles = useCallback((data) => {
-    console.log("[PostList.jsx] Получены прикреплённые файлы для postId:", lastPostId, "Данные:", data);
-    const newFiles = data.filter(
-      (newFile) => !attachedFiles.some((existingFile) => existingFile.id === newFile.id)
-    );
-    if (newFiles.length > 0) {
-      setAttachedFiles((prev) => [...prev, ...newFiles]);
-    }
-  }, [attachedFiles, lastPostId]);
+  const handleAttachedFiles = useCallback(
+    (data) => {
+      console.log("[PostList.jsx] Получены прикреплённые файлы для postId:", lastPostId, "Данные:", data);
+      const newFiles = data.filter(
+        (newFile) => !attachedFiles.some((existingFile) => existingFile.id === newFile.id)
+      );
+      if (newFiles.length > 0) {
+        setAttachedFiles((prev) => [...prev, ...newFiles]);
+      }
+    },
+    [attachedFiles, lastPostId]
+  );
 
   useEffect(() => {
     if (window.electronAPI && !isInitialized) {
       console.log("[PostList.jsx] Инициализация PostList");
 
-      const registerListeners = () => {
-        const listeners = {
-          posts: (data) => {
-            console.log("[PostList.jsx] Получены посты:", data.map((p) => p.id));
-            setPosts(
-              data.map((post) => ({
-                ...post,
-                is_published: !!post.is_published,
-              }))
-            );
-          },
-          groups: (data) => {
-            console.log("[PostList.jsx] Получены группы:", data.length);
-            setGroups(data);
-          },
-          templates: (data) => {
-            console.log("[PostList.jsx] Получены шаблоны:", data.length);
-            setTemplates(data);
-          },
-          attachedFiles: handleAttachedFiles,
-          selectedFiles: (data) => {
-            console.log("[PostList.jsx] Получены файлы через dialog:", data.length);
-            setFiles(data);
-          },
-          postSaved: (postId) => {
-            console.log("[PostList.jsx] Получен ID сохранённого поста:", postId);
-            setLastPostId(postId);
-            if (postId) window.electronAPI.send("get-attached-files", Number(postId));
-          },
-        };
-
-        Object.entries(listeners).forEach(([channel, callback]) => {
-          window.electronAPI.on(channel, callback);
-        });
-
-        console.log("[PostList.jsx] Отправка начальных запросов");
-        window.electronAPI.send("get-posts");
-        window.electronAPI.send("get-groups");
-        window.electronAPI.send("get-templates");
+      const listeners = {
+        posts: (data) => {
+          console.log("[PostList.jsx] Получены посты:", data.map((p) => p.id));
+          setPosts(
+            data.map((post) => ({
+              ...post,
+              is_published: !!post.is_published,
+            }))
+          );
+        },
+        groups: (data) => {
+          console.log("[PostList.jsx] Получены группы:", data.length);
+          setGroups(data);
+        },
+        templates: (data) => {
+          console.log("[PostList.jsx] Получены шаблоны:", data.length);
+          setTemplates(data);
+        },
+        attachedFiles: handleAttachedFiles,
+        selectedFiles: (data) => {
+          console.log("[PostList.jsx] Получены файлы через dialog:", data.length);
+          setFiles(data);
+        },
+        postSaved: (postId) => {
+          console.log("[PostList.jsx] Получен ID сохранённого поста:", postId);
+          setLastPostId(postId);
+          if (postId) window.electronAPI.send("get-attached-files", Number(postId));
+        },
       };
 
-      registerListeners();
+      Object.entries(listeners).forEach(([channel, callback]) => {
+        window.electronAPI.on(channel, callback);
+      });
+
+      console.log("[PostList.jsx] Отправка начальных запросов");
+      window.electronAPI.send("get-posts");
+      window.electronAPI.send("get-groups");
+      window.electronAPI.send("get-templates");
+
       setIsInitialized(true);
 
       return () => {
@@ -172,11 +172,7 @@ function PostList() {
 
       <FormControl fullWidth margin="normal">
         <InputLabel>Шаблон</InputLabel>
-        <Select
-          value={selectedTemplate}
-          onChange={handleTemplateChange}
-          label="Шаблон"
-        >
+        <Select value={selectedTemplate} onChange={handleTemplateChange} label="Шаблон">
           <MenuItem value="">Без шаблона</MenuItem>
           {templates.map((template) => (
             <MenuItem key={template.id} value={template.id}>
@@ -196,11 +192,7 @@ function PostList() {
         margin="normal"
       />
 
-      <Button
-        variant="outlined"
-        onClick={handleFileSelect}
-        style={{ margin: "10px 0" }}
-      >
+      <Button variant="outlined" onClick={handleFileSelect} style={{ margin: "10px 0" }}>
         Выбрать файлы
       </Button>
       {files.length > 0 && (
