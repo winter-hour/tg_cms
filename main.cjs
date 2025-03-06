@@ -169,7 +169,7 @@ handleIPC("save-template", async (event, template) => {
   event.sender.send("templates", rows);
 });
 
-// Создание окна
+// Создание окна с адаптацией к порту Vite
 function createWindow() {
   const win = new BrowserWindow({
     width: 800,
@@ -187,14 +187,14 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         "Content-Security-Policy": [
-          "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http://localhost:5173 ws://localhost:5173; style-src 'self' 'unsafe-inline';",
+          "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http://localhost:5173 ws://localhost:5174; style-src 'self' 'unsafe-inline';",
         ],
       },
     });
   });
 
   console.log("[main.cjs] Попытка загрузки фронтенда...");
-  win.loadURL("http://localhost:5173").catch((err) => {
+  win.loadURL("http://localhost:5174").catch((err) => {
     console.error("[main.cjs] Ошибка загрузки фронтенда:", err.message);
     win.loadFile("error.html");
   });

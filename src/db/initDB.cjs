@@ -10,59 +10,61 @@ const db = new sqlite3.Database(path.join(__dirname, "../../database.db"), (err)
   }
 });
 
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS Post_Groups (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      description TEXT
-    )
-  `);
+function initDB() {
+  db.serialize(() => {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS Post_Groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS Post_Templates (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      template_name TEXT NOT NULL,
-      template_text TEXT NOT NULL
-    )
-  `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS Post_Templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        template_name TEXT NOT NULL,
+        template_text TEXT NOT NULL
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS Post_Posts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      group_id INTEGER,
-      channel_id INTEGER,
-      user_id INTEGER,
-      title TEXT,
-      text TEXT,
-      is_published INTEGER DEFAULT 0,
-      published_at TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT,
-      FOREIGN KEY (group_id) REFERENCES Post_Groups(id)
-    )
-  `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS Post_Posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_id INTEGER,
+        channel_id INTEGER,
+        user_id INTEGER,
+        title TEXT,
+        text TEXT,
+        is_published INTEGER DEFAULT 0,
+        published_at TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT,
+        FOREIGN KEY (group_id) REFERENCES Post_Groups(id)
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS Post_Attached_Files (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      post_id INTEGER,
-      file_path TEXT NOT NULL,
-      file_type TEXT,
-      FOREIGN KEY (post_id) REFERENCES Post_Posts(id)
-    )
-  `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS Post_Attached_Files (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id INTEGER,
+        file_path TEXT NOT NULL,
+        file_type TEXT,
+        FOREIGN KEY (post_id) REFERENCES Post_Posts(id)
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS Post_Post_Template (
-      post_id INTEGER,
-      template_id INTEGER,
-      FOREIGN KEY (post_id) REFERENCES Post_Posts(id),
-      FOREIGN KEY (template_id) REFERENCES Post_Templates(id),
-      PRIMARY KEY (post_id, template_id)
-    )
-  `);
-});
+    db.run(`
+      CREATE TABLE IF NOT EXISTS Post_Post_Template (
+        post_id INTEGER,
+        template_id INTEGER,
+        FOREIGN KEY (post_id) REFERENCES Post_Posts(id),
+        FOREIGN KEY (template_id) REFERENCES Post_Templates(id),
+        PRIMARY KEY (post_id, template_id)
+      )
+    `);
+  });
+}
 
 function getGroups(callback) {
   db.all("SELECT * FROM Post_Groups", callback);
