@@ -23,9 +23,9 @@ const listeners = {
   posts: [],
   groups: [],
   templates: [],
-  attachedFiles: [],
-  selectedFiles: [],
-  postSaved: [],
+  "attached-files": [],
+  "selected-files": [],
+  "post-saved": [],
 };
 
 // Регистрация слушателей один раз
@@ -98,9 +98,9 @@ function PostList() {
       listeners.posts.push(postsCallback);
       listeners.groups.push(groupsCallback);
       listeners.templates.push(templatesCallback);
-      listeners.attachedFiles.push(attachedFilesCallback);
-      listeners.selectedFiles.push(selectedFilesCallback);
-      listeners.postSaved.push(postSavedCallback);
+      listeners["attached-files"].push(attachedFilesCallback);
+      listeners["selected-files"].push(selectedFilesCallback);
+      listeners["post-saved"].push(postSavedCallback);
 
       console.log("[PostList.jsx] Отправка начальных запросов");
       window.electronAPI.send("get-posts");
@@ -112,9 +112,9 @@ function PostList() {
         listeners.posts = listeners.posts.filter((cb) => cb !== postsCallback);
         listeners.groups = listeners.groups.filter((cb) => cb !== groupsCallback);
         listeners.templates = listeners.templates.filter((cb) => cb !== templatesCallback);
-        listeners.attachedFiles = listeners.attachedFiles.filter((cb) => cb !== attachedFilesCallback);
-        listeners.selectedFiles = listeners.selectedFiles.filter((cb) => cb !== selectedFilesCallback);
-        listeners.postSaved = listeners.postSaved.filter((cb) => cb !== postSavedCallback);
+        listeners["attached-files"] = listeners["attached-files"].filter((cb) => cb !== attachedFilesCallback);
+        listeners["selected-files"] = listeners["selected-files"].filter((cb) => cb !== selectedFilesCallback);
+        listeners["post-saved"] = listeners["post-saved"].filter((cb) => cb !== postSavedCallback);
       };
     } else {
       console.error("[PostList.jsx] window.electronAPI недоступен!");
@@ -123,6 +123,14 @@ function PostList() {
 
   useEffect(() => {
     console.log("[PostList.jsx] Текущее состояние posts:", posts.map((p) => p.id));
+  }, [posts]);
+
+  useEffect(() => {
+    if (posts.length > 0) {
+      posts.forEach((post) => {
+        window.electronAPI.send("get-attached-files", Number(post.id));
+      });
+    }
   }, [posts]);
 
   const handleSave = () => {
